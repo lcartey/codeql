@@ -7,7 +7,7 @@
  * @id cs/useless-assignment-to-local
  * @tags maintainability
  *       external/cwe/cwe-563
- * @precision very-high
+ * @precision high
  */
 
 import csharp
