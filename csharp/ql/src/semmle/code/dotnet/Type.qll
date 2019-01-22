@@ -77,7 +77,7 @@ class PointerType extends Type, @dotnet_pointer_type {
 
   override string getName() { result = this.getReferentType().getName() + "*" }
 
-  final override string getTypeLabel() { result = getReferentType().getLabel() + "*" }
+  final override string getTypeLabel() { result = getReferentType().getTypeLabel() + "*" }
 
   override string toStringWithTypes() { result = getReferentType().toStringWithTypes() + "*" }
 }
@@ -87,7 +87,7 @@ class ArrayType extends ValueOrRefType, @dotnet_array_type {
   /** Gets the type of the array element. */
   Type getElementType() { none() }
 
-  final override string getTypeLabel() { result = getElementType().getLabel() + "[]" }
+  final override string getTypeLabel() { result = getElementType().getTypeLabel() + "[]" }
 
   override string toStringWithTypes() { result = getElementType().toStringWithTypes() + "[]" }
 }
