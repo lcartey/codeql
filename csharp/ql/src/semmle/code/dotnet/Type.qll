@@ -14,6 +14,15 @@ import Generics
 class Type extends Declaration, @dotnet_type {
   /** Gets the name of this type without additional syntax such as `[]`, `*`, or `<...>`. */
   override string getUndecoratedName() { none() }
+
+  final override string getLabel() {
+    result = getTypeLabel()
+  }
+
+  /** Gets the label associated with this type. */
+  string getTypeLabel() {
+   none()
+  }
 }
 
 /**
@@ -24,7 +33,8 @@ class ValueOrRefType extends Type, @dotnet_valueorreftype {
   /** Gets the namespace declaring this type, if any. */
   Namespace getDeclaringNamespace() { none() }
 
-  override string getLabel() {
+
+  override string getTypeLabel() {
     result = getPrefixWithTypes() + getUndecoratedName() + getGenericsLabel(this)
   }
 
@@ -51,7 +61,7 @@ class TypeParameter extends Type, @dotnet_type_parameter {
   /** Gets the index of this type parameter. For example the index of `U` in `Func<T,U>` is 1. */
   int getIndex() { none() }
 
-  final override string getLabel() {
+  final override string getTypeLabel() {
     result = "!" + getIndex()
   }
 
@@ -67,7 +77,7 @@ class PointerType extends Type, @dotnet_pointer_type {
 
   override string getName() { result = this.getReferentType().getName() + "*" }
 
-  final override string getLabel() { result = getReferentType().getLabel() + "*" }
+  final override string getTypeLabel() { result = getReferentType().getLabel() + "*" }
 
   override string toStringWithTypes() { result = getReferentType().toStringWithTypes() + "*" }
 }
@@ -77,7 +87,7 @@ class ArrayType extends ValueOrRefType, @dotnet_array_type {
   /** Gets the type of the array element. */
   Type getElementType() { none() }
 
-  final override string getLabel() { result = getElementType().getLabel() + "[]" }
+  final override string getTypeLabel() { result = getElementType().getLabel() + "[]" }
 
   override string toStringWithTypes() { result = getElementType().toStringWithTypes() + "[]" }
 }

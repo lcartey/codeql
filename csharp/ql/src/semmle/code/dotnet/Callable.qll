@@ -44,7 +44,7 @@ class Callable extends Declaration, @dotnet_callable {
 
   language [monotonicAggregates]
   private string getMethodParamList() {
-    result = concat(int p | exists(getParameter(p)) | getParameter(p).getType().getLabel(), "," order by p)
+    result = concat(int p | exists(getParameter(p)) | getParameter(p).getType().getTypeLabel(), "," order by p)
   }
 
   override string getUndecoratedName() { result=getName() }

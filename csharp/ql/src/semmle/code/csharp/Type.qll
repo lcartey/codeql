@@ -981,7 +981,7 @@ class TupleType extends ValueType, @tuple_type {
     result = "(" + concat(int i | exists(getElement(i)) | getElement(i).getType().toStringWithTypes(), ", " order by i) + ")"
   }
 
-  override string getLabel() { result = getUnderlyingType().getLabel() }
+  override string getTypeLabel() { result = getUnderlyingType().getTypeLabel() }
 }
 
 /**
