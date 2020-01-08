@@ -47,6 +47,13 @@ private import RangeAnalysisUtils
 import RangeSSA
 import SimpleRangeAnalysisCached
 private import NanAnalysis
+import semmle.code.cpp.controlflow.Guards
+
+abstract class CustomRangeAnalysisExpr extends Expr {
+  abstract predicate dependsOnDef(RangeSsaDefinition srcDef, StackVariable srcVar);
+  abstract float getLowerBounds();
+  abstract float getUpperBounds();
+}
 
 /**
  * This fixed set of lower bounds is used when the lower bounds of an
@@ -101,6 +108,7 @@ private predicate analyzableExpr(Expr e) {
     e instanceof UnaryPlusExpr or
     e instanceof UnaryMinusExpr or
     e instanceof MinExpr or
+    e instanceof CustomRangeAnalysisExpr or
     e instanceof MaxExpr or
     e instanceof ConditionalExpr or
     e instanceof AddExpr or
@@ -171,7 +179,7 @@ private predicate defDependsOnDef(
  * Helper predicate for `defDependsOnDef`. This predicate matches
  * the structure of `getLowerBoundsImpl` and `getUpperBoundsImpl`.
  */
-private predicate exprDependsOnDef(Expr e, RangeSsaDefinition srcDef, StackVariable srcVar) {
+predicate exprDependsOnDef(Expr e, RangeSsaDefinition srcDef, StackVariable srcVar) {
   exists(UnaryMinusExpr negateExpr | e = negateExpr |
     exprDependsOnDef(negateExpr.getOperand(), srcDef, srcVar)
   )
@@ -179,6 +187,8 @@ private predicate exprDependsOnDef(Expr e, RangeSsaDefinition srcDef, StackVaria
   exists(UnaryPlusExpr plusExpr | e = plusExpr |
     exprDependsOnDef(plusExpr.getOperand(), srcDef, srcVar)
   )
+  or
+  exists(CustomRangeAnalysisExpr customExpr | e = customExpr | customExpr.dependsOnDef(srcDef, srcVar))
   or
   exists(MinExpr minExpr | e = minExpr | exprDependsOnDef(minExpr.getAnOperand(), srcDef, srcVar))
   or
@@ -339,7 +349,7 @@ private float addRoundingDownSmall(float x, float small) {
 /**
  * Gets the truncated lower bounds of the fully converted expression.
  */
-private float getFullyConvertedLowerBounds(Expr expr) {
+float getFullyConvertedLowerBounds(Expr expr) {
   result = getTruncatedLowerBounds(expr.getFullyConverted())
 }
 
@@ -392,7 +402,7 @@ private float getTruncatedLowerBounds(Expr expr) {
 /**
  * Gets the truncated upper bounds of the fully converted expression.
  */
-private float getFullyConvertedUpperBounds(Expr expr) {
+float getFullyConvertedUpperBounds(Expr expr) {
   result = getTruncatedUpperBounds(expr.getFullyConverted())
 }
 
@@ -478,6 +488,11 @@ private float getLowerBoundsImpl(Expr expr) {
     expr = minExpr and
     // Return the union of the lower bounds from both children.
     result = getFullyConvertedLowerBounds(minExpr.getAnOperand())
+  )
+  or
+  exists(CustomRangeAnalysisExpr customExpr |
+    expr = customExpr and
+    result = customExpr.getLowerBounds()
   )
   or
   exists(MaxExpr maxExpr |
@@ -647,6 +662,11 @@ private float getUpperBoundsImpl(Expr expr) {
       y = getFullyConvertedUpperBounds(minExpr.getRightOperand()) and
       if x <= y then result = x else result = y
     )
+  )
+  or
+  exists(CustomRangeAnalysisExpr customExpr |
+    expr = customExpr and
+    result = customExpr.getUpperBounds()
   )
   or
   // ConditionalExpr (true branch)
