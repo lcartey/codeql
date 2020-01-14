@@ -50,9 +50,10 @@ private import NanAnalysis
 import semmle.code.cpp.controlflow.Guards
 
 abstract class CustomRangeAnalysisExpr extends Expr {
-  abstract predicate dependsOnDef(RangeSsaDefinition srcDef, StackVariable srcVar);
+  predicate dependsOnDef(RangeSsaDefinition srcDef, StackVariable srcVar) { none() }
   abstract float getLowerBounds();
   abstract float getUpperBounds();
+  predicate analyzableDef(RangeSsaDefinition srcDef, StackVariable srcVar) { none() }
 }
 
 /**
@@ -294,7 +295,7 @@ private predicate assignmentDef(RangeSsaDefinition def, StackVariable v, Expr ex
 
 /** See comment above sourceDef. */
 private predicate analyzableDef(RangeSsaDefinition def, StackVariable v) {
-  assignmentDef(def, v, _) or defDependsOnDef(def, v, _, _)
+  assignmentDef(def, v, _) or defDependsOnDef(def, v, _, _) or any(CustomRangeAnalysisExpr crae).analyzableDef(def, v)
 }
 
 /**
@@ -785,7 +786,7 @@ private float getUpperBoundsImpl(Expr expr) {
   or
   // Use SSA to get the upper bounds for a variable use.
   exists(RangeSsaDefinition def, StackVariable v | expr = def.getAUse(v) |
-    result = getDefUpperBounds(def, v)
+    result = getDefUpperBounds(def, v) and not (expr instanceof CustomRangeAnalysisExpr)
   )
 }
 
@@ -878,7 +879,7 @@ private float boolConversionUpperBound(Expr expr) {
  * In this example, the lower bound of x is 0, but we can
  * use the guard to deduce that the lower bound is 2 inside the block.
  */
-private float getPhiLowerBounds(StackVariable v, RangeSsaDefinition phi) {
+float getPhiLowerBounds(StackVariable v, RangeSsaDefinition phi) {
   exists(
     VariableAccess access, ComparisonOperation guard, boolean branch, float defLB, float guardLB
   |
@@ -895,7 +896,7 @@ private float getPhiLowerBounds(StackVariable v, RangeSsaDefinition phi) {
 }
 
 /** See comment for `getPhiLowerBounds`, above. */
-private float getPhiUpperBounds(StackVariable v, RangeSsaDefinition phi) {
+float getPhiUpperBounds(StackVariable v, RangeSsaDefinition phi) {
   exists(
     VariableAccess access, ComparisonOperation guard, boolean branch, float defUB, float guardUB
   |
