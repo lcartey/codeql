@@ -1,4 +1,5 @@
 import java
+import semmle.code.java.frameworks.JaxWS
 import semmle.code.java.frameworks.Servlets
 import semmle.code.java.frameworks.android.WebView
 import semmle.code.java.frameworks.spring.SpringController
@@ -11,6 +12,15 @@ import semmle.code.java.dataflow.TaintTracking
 
 class XssSink extends DataFlow::ExprNode {
   XssSink() {
+    exists(JaxRsResourceMethod resourceMethod, ReturnStmt rs |
+      resourceMethod = any(JaxRsResourceClass resourceClass).getAResourceMethod() and
+      rs.getEnclosingCallable() = resourceMethod and
+      this.asExpr() = rs.getResult() |
+      not exists(resourceMethod.getProducesAnnotation())
+      or
+      resourceMethod.getProducesAnnotation().getADeclaredMimeType() = "text/plain"
+    )
+    or
     exists(HttpServletResponseSendErrorMethod m, MethodAccess ma |
       ma.getMethod() = m and
       this.getExpr() = ma.getArgument(1)
