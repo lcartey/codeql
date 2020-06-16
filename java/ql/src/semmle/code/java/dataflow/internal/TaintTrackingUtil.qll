@@ -7,6 +7,7 @@ private import semmle.code.java.security.SecurityTests
 private import semmle.code.java.security.Validation
 private import semmle.code.java.frameworks.android.Intent
 private import semmle.code.java.frameworks.Guice
+private import semmle.code.java.frameworks.JaxWS
 private import semmle.code.java.frameworks.Protobuf
 private import semmle.code.java.frameworks.spring.SpringController
 private import semmle.code.java.frameworks.spring.SpringHttp
@@ -401,6 +402,18 @@ private predicate taintPreservingQualifierToMethod(Method m) {
     m.getReturnType().(RefType).getSourceDeclaration().getASourceSupertype*().hasQualifiedName("java.util", "List") and
     m.getReturnType().(ParameterizedType).getTypeArgument(0) instanceof TypeString
   )
+  or
+  m.getDeclaringType().hasQualifiedName("java.util.regex", "Matcher") and
+  m.getName().regexpMatch("group|(replace.*)|usePattern|useTransparentBounds|useAnchoringBounds|region|appendReplacement")
+  or
+  // JaxRS flow through ResponseBuilder, from qualifier
+  m.getDeclaringType() instanceof JaxRsResponseBuilder
+  or
+  m.getDeclaringType().getSourceDeclaration().getASourceSupertype*().hasQualifiedName("java.util", "Set") and
+  m.getName().regexpMatch("get|toArray|iterator")
+  or
+  m.getDeclaringType().getSourceDeclaration().getASourceSupertype*().hasQualifiedName("java.util", "Iterator") and
+  m.getName().regexpMatch("next")
 }
 
 private class StringReplaceMethod extends Method {
@@ -451,6 +464,14 @@ private predicate argToMethodStep(Expr tracked, MethodAccess sink) {
     springResponseEntityBody.getName().regexpMatch("body") and
     tracked = sink.getArgument(0) and
     tracked.getType() instanceof TypeString
+  )
+  or
+  exists(Method stringUtilsMethod |
+    stringUtilsMethod.getDeclaringType().hasQualifiedName("org.apache.commons.lang3", "StringUtils") and
+    stringUtilsMethod.getReturnType() instanceof TypeString and
+    sink.getMethod() = stringUtilsMethod and
+    tracked = sink.getAnArgument() and
+    (tracked.getType() instanceof TypeString or tracked.getType().(RefType).hasQualifiedName("java.lang", "CharSequence") or tracked.getType() instanceof Array)
   )
 }
 
@@ -570,6 +591,44 @@ private predicate taintPreservingArgumentToMethod(Method method, int arg) {
   method instanceof JacksonWriteValueMethod and
   method.getNumberOfParameters() = 1 and
   arg = 0
+  or
+  method.getDeclaringType().hasQualifiedName("java.io", "StringWriter") and
+  method.hasName("append") and
+  arg = 0
+  or
+  method.getDeclaringType().hasQualifiedName("java.util", "Collections") and
+  method.getName().regexpMatch("(max|min|list|checked|singleton|synchronized|unmodifiable).*") and
+  arg = [0, 1]
+  or
+  method.getDeclaringType().hasQualifiedName("java.util", "Arrays") and
+  method.getName().regexpMatch("asList|toString|(copyOf.*)|deepToString") and
+  arg = 0
+  or
+  method.getDeclaringType().hasQualifiedName("com.fasterxml.jackson.databind", ["ObjectMapper", "ObjectReader"]) and
+  method.getName().regexpMatch("(read.*)|convertValue") and
+  arg = 0
+  or
+  method.getDeclaringType().hasQualifiedName("java.util.regex", "Pattern") and
+  method.getName() = "matcher" and
+  arg = 0
+  or
+  // flow through the replacement
+  method.getDeclaringType().hasQualifiedName("java.util.regex", "Matcher") and
+  method.getName().regexpMatch("replace.*") and
+  arg = 0
+  or
+  // JaxRS flow through ResponseBuilder
+  // TODO some may be safe in practice, because of constrained types
+  method.getDeclaringType() instanceof JaxRsResponseBuilder and
+  method.getNumberOfParameters() > 0 and
+  arg = [0..(method.getNumberOfParameters() - 1)]
+  or
+  // JaxRS flow through Response
+  // TODO some may be safe in practice, because of constrained types
+  method.getDeclaringType() instanceof JaxRsResponse and
+  method.getReturnType() instanceof JaxRsResponseBuilder and
+  method.getNumberOfParameters() > 0 and
+  arg = [0..(method.getNumberOfParameters() - 1)]
 }
 
 /**
