@@ -77,7 +77,7 @@ class TerminalNode extends DataFlow::Node {
 class TerminalConfig extends TaintTracking::Configuration {
   TerminalConfig() { this = "TerminalConfig" }
 
-  override predicate isSource(DataFlow::Node source) { source instanceof RemoteFlowSource }
+  override predicate isSource(DataFlow::Node source) { source instanceof RemoteFlowSource and source.asParameter().getCallable().hasName("viewAssociatedDespatchAdvice") }
 
   override predicate isSink(DataFlow::Node sink) { sink instanceof TerminalNode }
 }
