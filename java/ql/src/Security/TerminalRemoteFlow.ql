@@ -3,8 +3,8 @@
  * @description Data provided remotely is used in this external API.
  * @id java/terminating-use-of-tainted-data
  * @kind path-problem
- * @precision low
- * @severity warning
+ * @precision high
+ * @severity error
  */
 
 import java
