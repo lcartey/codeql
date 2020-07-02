@@ -5,6 +5,7 @@
  * @kind path-problem
  * @precision high
  * @severity error
+ * @tags security
  */
 
 import java
