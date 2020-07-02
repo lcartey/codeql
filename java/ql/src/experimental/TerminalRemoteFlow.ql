@@ -27,6 +27,24 @@ class UninterestingMethod extends Method {
     or
     getDeclaringType().hasQualifiedName("com.google.common.base", "Strings") and
     getName() = "isNullOrEmpty"
+    or
+    getDeclaringType().hasQualifiedName("org.apache.commons.lang3", "StringUtils") and
+    getName() = "isNotEmpty"
+    or
+    getDeclaringType().hasQualifiedName("java.lang", "Character") and
+    getName() = "isDigit"
+    or
+    getDeclaringType().hasQualifiedName("java.lang", "String") and
+    getName().regexpMatch("equalsIgnoreCase|regionMatches")
+    or
+    getDeclaringType().hasQualifiedName("java.lang", "Boolean") and
+    getName() = "parseBoolean"
+    or
+    getDeclaringType().hasQualifiedName("org.apache.commons.io", "IOUtils") and
+    getName() = "closeQuietly"
+    or
+    getDeclaringType().hasQualifiedName("org.springframework.util", "StringUtils") and
+    getName().regexpMatch("hasText|isEmpty")
   }
 }
 
@@ -45,7 +63,8 @@ class TerminalNode extends DataFlow::Node {
     not call.getCallee() instanceof UninterestingMethod and
     // Not a call to an method which is overridden
     not exists(Method m |
-      m.getASourceOverriddenMethod() = call.getCallee().getSourceDeclaration()
+      m.getASourceOverriddenMethod() = call.getCallee().getSourceDeclaration() and
+      exists(m.getBody())
     )
   }
 
