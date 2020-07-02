@@ -60,12 +60,7 @@ class TerminalNode extends DataFlow::Node {
       TaintTracking::localTaintStep(this, next)
     ) and
     // Not a call to an uninteresting method
-    not call.getCallee() instanceof UninterestingMethod and
-    // Not a call to an method which is overridden
-    not exists(Method m |
-      m.getASourceOverriddenMethod() = call.getCallee().getSourceDeclaration() and
-      exists(m.getBody())
-    )
+    not call.getCallee() instanceof UninterestingMethod
   }
 
   /** Gets the `Method` being called by this terminal node. */
