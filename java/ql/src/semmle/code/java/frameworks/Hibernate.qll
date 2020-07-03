@@ -9,14 +9,20 @@ class HibernateSession extends RefType {
   HibernateSession() { this.hasQualifiedName("org.hibernate", "Session") }
 }
 
+/** The interface `org.hibernate.query.QueryProducer`. */
+class HibernateQueryProducer extends RefType {
+  HibernateQueryProducer() { this.hasQualifiedName("org.hibernate.query", "QueryProducer") }
+}
+
 /**
  * Holds if `m` is a method on `HibernateSession`, or a subclass, taking an SQL
  * string as its first argument.
  */
 predicate hibernateSqlMethod(Method m) {
-  m.getDeclaringType().getASourceSupertype*() instanceof HibernateSession and
+  m.getDeclaringType().getASourceSupertype*() instanceof HibernateQueryProducer and
   m.getParameterType(0) instanceof TypeString and
   (
+    m.hasName("createNativeQuery") or
     m.hasName("createQuery") or
     m.hasName("createSQLQuery")
   )
