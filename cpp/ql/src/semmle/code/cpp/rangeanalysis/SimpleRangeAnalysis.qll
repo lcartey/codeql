@@ -178,11 +178,15 @@ private predicate analyzableExpr(Expr e) {
     or
     e instanceof SubExpr
     or
+    e instanceof MulExpr
+    or
     e instanceof AssignExpr
     or
     e instanceof AssignAddExpr
     or
     e instanceof AssignSubExpr
+    or
+    e instanceof AssignMulExpr
     or
     e instanceof CrementOperation
     or
@@ -243,6 +247,14 @@ private predicate defDependsOnDef(
     exprDependsOnDef(assignSub.getRValue(), srcDef, srcVar)
   )
   or
+  exists(AssignMulExpr assignMul, RangeSsaDefinition nextDef |
+    def = assignMul and
+    assignMul.getLValue() = nextDef.getAUse(v)
+  |
+    defDependsOnDef(nextDef, v, srcDef, srcVar) or
+    exprDependsOnDef(assignMul.getRValue(), srcDef, srcVar)
+  )
+  or
   exists(CrementOperation crem |
     def = crem and
     crem.getOperand() = v.getAnAccess() and
@@ -278,6 +290,8 @@ private predicate exprDependsOnDef(Expr e, RangeSsaDefinition srcDef, StackVaria
   or
   exists(SubExpr subExpr | e = subExpr | exprDependsOnDef(subExpr.getAnOperand(), srcDef, srcVar))
   or
+  exists(MulExpr mulExpr | e = mulExpr | exprDependsOnDef(mulExpr.getAnOperand(), srcDef, srcVar))
+  or
   exists(AssignExpr addExpr | e = addExpr | exprDependsOnDef(addExpr.getRValue(), srcDef, srcVar))
   or
   exists(AssignAddExpr addExpr | e = addExpr |
@@ -286,6 +300,10 @@ private predicate exprDependsOnDef(Expr e, RangeSsaDefinition srcDef, StackVaria
   or
   exists(AssignSubExpr subExpr | e = subExpr |
     exprDependsOnDef(subExpr.getAnOperand(), srcDef, srcVar)
+  )
+  or
+  exists(AssignMulExpr assignMulExpr | e = assignMulExpr |
+    exprDependsOnDef(assignMulExpr.getAnOperand(), srcDef, srcVar)
   )
   or
   exists(CrementOperation crementExpr | e = crementExpr |
@@ -625,6 +643,15 @@ private float getLowerBoundsImpl(Expr expr) {
     result = addRoundingDown(xLow, -yHigh)
   )
   or
+  exists(MulExpr mulExpr, float xLow, float xHigh, float yLow, float yHigh |
+    expr = mulExpr and
+    xLow = getFullyConvertedLowerBounds(mulExpr.getLeftOperand()) and
+    xHigh = getFullyConvertedUpperBounds(mulExpr.getLeftOperand()) and
+    yLow = getFullyConvertedLowerBounds(mulExpr.getRightOperand()) and
+    yHigh = getFullyConvertedUpperBounds(mulExpr.getRightOperand()) and
+    result = min(float x, float y | x = [xLow, xHigh] and y = [yLow, yHigh] | x * y)
+  )
+  or
   exists(AssignExpr assign |
     expr = assign and
     result = getFullyConvertedLowerBounds(assign.getRValue())
@@ -642,6 +669,15 @@ private float getLowerBoundsImpl(Expr expr) {
     xLow = getFullyConvertedLowerBounds(subExpr.getLValue()) and
     yHigh = getFullyConvertedUpperBounds(subExpr.getRValue()) and
     result = addRoundingDown(xLow, -yHigh)
+  )
+  or
+  exists(AssignMulExpr assignMulExpr, float xLow, float xHigh, float yLow, float yHigh |
+    expr = assignMulExpr and
+    xLow = getFullyConvertedLowerBounds(assignMulExpr.getLValue()) and
+    xHigh = getFullyConvertedUpperBounds(assignMulExpr.getLValue()) and
+    yLow = getFullyConvertedLowerBounds(assignMulExpr.getRValue()) and
+    yHigh = getFullyConvertedUpperBounds(assignMulExpr.getRValue()) and
+    result = min(float x, float y | x = [xLow, xHigh] and y = [yLow, yHigh] | x * y)
   )
   or
   exists(PrefixIncrExpr incrExpr, float xLow |
@@ -794,6 +830,15 @@ private float getUpperBoundsImpl(Expr expr) {
     result = addRoundingUp(xHigh, -yLow)
   )
   or
+  exists(MulExpr mulExpr, float xLow, float xHigh, float yLow, float yHigh |
+    expr = mulExpr and
+    xLow = getFullyConvertedLowerBounds(mulExpr.getLeftOperand()) and
+    xHigh = getFullyConvertedUpperBounds(mulExpr.getLeftOperand()) and
+    yLow = getFullyConvertedLowerBounds(mulExpr.getRightOperand()) and
+    yHigh = getFullyConvertedUpperBounds(mulExpr.getRightOperand()) and
+    result = max(float x, float y | x = [xLow, xHigh] and y = [yLow, yHigh] | x * y)
+  )
+  or
   exists(AssignExpr assign |
     expr = assign and
     result = getFullyConvertedUpperBounds(assign.getRValue())
@@ -811,6 +856,15 @@ private float getUpperBoundsImpl(Expr expr) {
     xHigh = getFullyConvertedUpperBounds(subExpr.getLValue()) and
     yLow = getFullyConvertedLowerBounds(subExpr.getRValue()) and
     result = addRoundingUp(xHigh, -yLow)
+  )
+  or
+  exists(AssignMulExpr assignMulExpr, float xLow, float xHigh, float yLow, float yHigh |
+    expr = assignMulExpr and
+    xLow = getFullyConvertedLowerBounds(assignMulExpr.getLValue()) and
+    xHigh = getFullyConvertedUpperBounds(assignMulExpr.getLValue()) and
+    yLow = getFullyConvertedLowerBounds(assignMulExpr.getRValue()) and
+    yHigh = getFullyConvertedUpperBounds(assignMulExpr.getRValue()) and
+    result = max(float x, float y | x = [xLow, xHigh] and y = [yLow, yHigh] | x * y)
   )
   or
   exists(PrefixIncrExpr incrExpr, float xHigh |
@@ -1041,6 +1095,16 @@ private float getDefLowerBoundsImpl(RangeSsaDefinition def, StackVariable v) {
     result = addRoundingDown(lhsLB, -rhsUB)
   )
   or
+  exists(AssignMulExpr assignMul, RangeSsaDefinition nextDef, float xL, float xU, float yL, float yU |
+    def = assignMul and
+    assignMul.getLValue() = nextDef.getAUse(v) and
+    xL = getDefLowerBounds(nextDef, v) and
+    xU = getDefUpperBounds(nextDef, v) and
+    yL = getFullyConvertedLowerBounds(assignMul.getRValue()) and
+    yU = getFullyConvertedLowerBounds(assignMul.getRValue()) and
+    result = min(float x, float y | x = [xL, xU] and y = [yL, yU] | x * y)
+  )
+  or
   exists(IncrementOperation incr, float newLB |
     def = incr and
     incr.getOperand() = v.getAnAccess() and
@@ -1081,6 +1145,15 @@ private float getDefUpperBoundsImpl(RangeSsaDefinition def, StackVariable v) {
     lhsUB = getDefUpperBounds(nextDef, v) and
     rhsLB = getFullyConvertedLowerBounds(assignSub.getRValue()) and
     result = addRoundingUp(lhsUB, -rhsLB)
+  )
+  or
+  exists(AssignMulExpr assignMul, RangeSsaDefinition nextDef, float xL, float xU, float yL, float yU |
+    def = assignMul and
+    xL = getDefLowerBounds(nextDef, v) and
+    xU = getDefUpperBounds(nextDef, v) and
+    yL = getFullyConvertedLowerBounds(assignMul.getRValue()) and
+    yU = getFullyConvertedLowerBounds(assignMul.getRValue()) and
+    result = min(float x, float y | x = [xL, xU] and y = [yL, yU] | x * y)
   )
   or
   exists(IncrementOperation incr, float newUB |
