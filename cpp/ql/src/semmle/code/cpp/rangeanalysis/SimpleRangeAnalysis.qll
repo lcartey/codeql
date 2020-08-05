@@ -1101,7 +1101,7 @@ private float getDefLowerBoundsImpl(RangeSsaDefinition def, StackVariable v) {
     xL = getDefLowerBounds(nextDef, v) and
     xU = getDefUpperBounds(nextDef, v) and
     yL = getFullyConvertedLowerBounds(assignMul.getRValue()) and
-    yU = getFullyConvertedLowerBounds(assignMul.getRValue()) and
+    yU = getFullyConvertedUpperBounds(assignMul.getRValue()) and
     result = min(float x, float y | x = [xL, xU] and y = [yL, yU] | x * y)
   )
   or
@@ -1152,7 +1152,7 @@ private float getDefUpperBoundsImpl(RangeSsaDefinition def, StackVariable v) {
     xL = getDefLowerBounds(nextDef, v) and
     xU = getDefUpperBounds(nextDef, v) and
     yL = getFullyConvertedLowerBounds(assignMul.getRValue()) and
-    yU = getFullyConvertedLowerBounds(assignMul.getRValue()) and
+    yU = getFullyConvertedUpperBounds(assignMul.getRValue()) and
     result = min(float x, float y | x = [xL, xU] and y = [yL, yU] | x * y)
   )
   or
