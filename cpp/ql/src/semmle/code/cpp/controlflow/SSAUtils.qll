@@ -31,11 +31,20 @@ predicate var_definition(StackVariable v, ControlFlowNode node) {
   not addressTakenVariable(v) and
   not unreachable(node) and
   (
-    if isReferenceVar(v)
+    if isReferenceVar(v) and not v instanceof Parameter
     then
       // Assignments to reference variables modify the referenced
-      // value, not the reference itself. So reference variables only
-      // have two kinds of definition: initializers and parameters.
+      // value, not the reference itself. For LocalVariables, this
+      // can result in local aliasing which can cause inappropriate
+      // SSA definitions. For LocalVariables we therefore restrict
+      // ourselves to considering the initializer of the reference
+      // as the only definition
+      //
+      // For reference parameters, the initialization of the reference
+      // occurs outside the scope of the given function. This makes
+      // it much less likely that aliasing will occur within the function
+      // itself. We therefore treat reference parameters as if they
+      // were regular parameters.
       node = v.getInitializer().getExpr()
     else definition(v, node)
   )
@@ -120,7 +129,8 @@ library class SSAHelper extends int {
   private predicate sanitized_custom_phi_node(StackVariable v, BasicBlock b) {
     custom_phi_node(v, b) and
     not addressTakenVariable(v) and
-    not isReferenceVar(v) and
+    // Only allow Parameter reference variables
+    (isReferenceVar(v) implies v instanceof Parameter) and
     b.isReachable()
   }
 
