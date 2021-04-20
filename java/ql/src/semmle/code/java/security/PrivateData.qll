@@ -11,7 +11,7 @@
 
 import java
 import semmle.code.java.dataflow.DataFlow
-import experimental.semmle.code.java.Logging
+import semmle.code.java.security.Logging
 
 /** A string for `match` that identifies strings that look like they represent private data. */
 private string privateNames() {
