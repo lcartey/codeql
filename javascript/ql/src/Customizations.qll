@@ -10,3 +10,4 @@
  */
 
 import javascript
+import semmle.javascript.heuristics.AdditionalSources
