@@ -121,7 +121,7 @@ module HardcodedCredentials {
         or
         name.regexpMatch("(?i).*(puid|username|userid).*")
         or
-        name.regexpMatch("(?i).*(cert)(?!.*(format|name)).*")
+        name.regexpMatch("(?i).*(cert)(?!.*(format|name|directory)).*")
       )
     }
   }
