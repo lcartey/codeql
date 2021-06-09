@@ -16,8 +16,8 @@ private import semmle.javascript.security.dataflow.HardcodedCredentialsCustomiza
 /**
  * A parameter of an exported function, seen as a remote flow source.
  */
-class ExternalInputSource extends RemoteFlowSource, DataFlow::ParameterNode {
-  ExternalInputSource() {
+class LibraryInputUntrustedDataSource extends RemoteFlowSource, DataFlow::ParameterNode {
+  LibraryInputUntrustedDataSource() {
     this = Exports::getALibraryInputParameter() and
     // An AMD-style module sometimes loads the jQuery library in a way which looks like library input.
     not this = JQuery::dollarSource()
