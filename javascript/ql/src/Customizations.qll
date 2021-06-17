@@ -20,7 +20,8 @@ class LibraryInputUntrustedDataSource extends RemoteFlowSource, DataFlow::Parame
   LibraryInputUntrustedDataSource() {
     this = Exports::getALibraryInputParameter() and
     // An AMD-style module sometimes loads the jQuery library in a way which looks like library input.
-    not this = JQuery::dollarSource()
+    not this = JQuery::dollarSource() and
+    this.getFile().getRelativePath().regexpMatch("packages/(core|util).*")
   }
 
   override string getSourceType() { result = "Library input" }
