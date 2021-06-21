@@ -12,6 +12,31 @@
 import javascript
 private import semmle.javascript.PackageExports as Exports
 private import semmle.javascript.security.dataflow.HardcodedCredentialsCustomizations
+private import semmle.javascript.security.dataflow.CleartextStorageCustomizations
+
+/** Add properties or variables with a name like "%token%" to the sources of the clear text storage query. */
+class TokenSource extends CleartextStorage::Source {
+  TokenSource() {
+    this.asExpr().(VarAccess).getName().toLowerCase().matches("%token%")
+    or
+    exists(DataFlow::PropRead pr |
+      this = pr and
+      pr.getPropertyName().toLowerCase().matches("%token%")
+    )
+  }
+
+  override string describe() { result = "an access of a token variable" }
+}
+
+/** Add logging APIs as sinks to cleartext storage of information. */
+class LoggingSink extends CleartextStorage::Sink {
+  LoggingSink() {
+    exists(CallExpr ce |
+      ce.getCalleeName().toLowerCase().regexpMatch("(info|warn|debug|error)") and
+      this.asExpr() = ce.getAnArgument()
+    )
+  }
+}
 
 /**
  * A parameter of an exported function, seen as a remote flow source.
