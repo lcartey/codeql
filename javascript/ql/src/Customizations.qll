@@ -29,8 +29,8 @@ class TokenSource extends CleartextStorage::Source {
 }
 
 /** Add logging APIs as sinks to cleartext storage of information. */
-class LoggingSink extends CleartextStorage::Sink {
-  LoggingSink() {
+class StorageLoggingSink extends CleartextStorage::Sink {
+  StorageLoggingSink() {
     exists(CallExpr ce |
       ce.getCalleeName().toLowerCase().regexpMatch("(info|warn|debug|error)") and
       this.asExpr() = ce.getAnArgument()
