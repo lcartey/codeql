@@ -460,6 +460,9 @@ class SAXParserParse extends XmlParserCall {
   override Expr getSink() { result = this.getArgument(0) }
 
   override predicate isSafe() {
+    // If there is not an unsafe parser that flows to this qualifier
+    not exists(UnsafeSAXParserFlowConfig sr | sr.hasFlowToExpr(this.getQualifier())) and
+    // And there is at least one safe parser
     exists(SafeSAXParserFlowConfig sp | sp.hasFlowToExpr(this.getQualifier()))
   }
 }
@@ -545,6 +548,60 @@ private class SafeSAXParserFlowConfig extends DataFlow4::Configuration {
 class SafeSAXParser extends MethodAccess {
   SafeSAXParser() {
     exists(SafeSAXParserFactoryToNewSAXParserFlowConfig sdf |
+      this.getMethod().getDeclaringType() instanceof SAXParserFactory and
+      this.getMethod().hasName("newSAXParser") and
+      sdf.hasFlowToExpr(this.getQualifier())
+    )
+  }
+}
+
+/**
+ * A unsafely configured `SAXParserFactory`.
+ */
+class UnsafeSAXParserFactory extends VarAccess {
+  UnsafeSAXParserFactory() {
+    not this instanceof SafeSAXParserFactory and
+    this.getType() instanceof SAXParserFactory
+  }
+}
+
+private class UnsafeSAXParserFactoryToNewSAXParserFlowConfig extends DataFlow5::Configuration {
+  UnsafeSAXParserFactoryToNewSAXParserFlowConfig() {
+    this = "XmlParsers::SafeSAXParserFactoryToNewSAXParserFlowConfig"
+  }
+
+  override predicate isSource(DataFlow::Node src) { src.asExpr() instanceof UnsafeSAXParserFactory }
+
+  override predicate isSink(DataFlow::Node sink) {
+    exists(MethodAccess ma, Method m |
+      sink.asExpr() = ma.getQualifier() and
+      ma.getMethod() = m and
+      m.getDeclaringType() instanceof SAXParserFactory and
+      m.hasName("newSAXParser")
+    )
+  }
+
+  override int fieldFlowBranchLimit() { result = 0 }
+}
+
+private class UnsafeSAXParserFlowConfig extends DataFlow4::Configuration {
+  UnsafeSAXParserFlowConfig() { this = "XmlParsers::SafeSAXParserFlowConfig" }
+
+  override predicate isSource(DataFlow::Node src) { src.asExpr() instanceof UnsafeSAXParser }
+
+  override predicate isSink(DataFlow::Node sink) {
+    exists(MethodAccess ma |
+      sink.asExpr() = ma.getQualifier() and ma.getMethod().getDeclaringType() instanceof SAXParser
+    )
+  }
+
+  override int fieldFlowBranchLimit() { result = 0 }
+}
+
+/** A `SAXParser` created from a not safely configured `SAXParserFactory`. */
+class UnsafeSAXParser extends MethodAccess {
+  UnsafeSAXParser() {
+    exists(UnsafeSAXParserFactoryToNewSAXParserFlowConfig sdf |
       this.getMethod().getDeclaringType() instanceof SAXParserFactory and
       this.getMethod().hasName("newSAXParser") and
       sdf.hasFlowToExpr(this.getQualifier())
