@@ -468,13 +468,56 @@ class SAXParserParse extends XmlParserCall {
 }
 
 /** A `ParserConfig` that is specific to `SAXParserFactory`. */
-class SAXParserFactoryConfig extends ParserConfig {
+class SAXParserFactoryConfig extends MethodAccess {
+  Expr factory_field;
+  Expr property_field;
+  Expr value_field;
+
   SAXParserFactoryConfig() {
     exists(Method m |
       m = this.getMethod() and
       m.getDeclaringType() instanceof SAXParserFactory and
-      m.hasName("setFeature")
+      m.hasName("setFeature") and
+      value_field = getArgument(1) and
+      factory_field = getQualifier() and
+      property_field = getArgument(0)
     )
+    or
+    exists(
+      SAXParserFactoryConfig nestedCall, Expr factory, Expr property, Expr value,
+      Parameter factoryParam, Parameter propertyParam, Parameter valueParam
+    |
+      // This `MethodAccess` calls the enclosing callable of `nestedCall`
+      getMethod() = nestedCall.getEnclosingCallable() and
+      // `nestedCall` has the following values
+      nestedCall.isMatch(factory, property, value) and
+      // Local data flow from parameters to the arguments to the nested call
+      DataFlow::localFlow(DataFlow::parameterNode(factoryParam), DataFlow::exprNode(factory)) and
+      DataFlow::localFlow(DataFlow::parameterNode(propertyParam), DataFlow::exprNode(property)) and
+      DataFlow::localFlow(DataFlow::parameterNode(valueParam), DataFlow::exprNode(value)) and
+      factory_field = factoryParam.getAnArgument() and
+      factory_field = getAnArgument() and
+      property_field = propertyParam.getAnArgument() and
+      property_field = getAnArgument() and
+      value_field = valueParam.getAnArgument() and
+      value_field = getAnArgument()
+    )
+  }
+
+  private predicate isMatch(Expr factory, Expr property, Expr value) {
+    factory = factory_field and property = property_field and value = value_field
+  }
+
+  predicate enables(Expr factory, Expr property) {
+    factory_field = factory and
+    property_field = property and
+    value_field.(BooleanLiteral).getBooleanValue() = true
+  }
+
+  predicate disables(Expr factory, Expr property) {
+    factory_field = factory and
+    property_field = property and
+    value_field.(BooleanLiteral).getBooleanValue() = false
   }
 }
 
@@ -484,25 +527,26 @@ class SAXParserFactoryConfig extends ParserConfig {
 class SafeSAXParserFactory extends VarAccess {
   SafeSAXParserFactory() {
     exists(Variable v | v = this.getVariable() |
-      exists(SAXParserFactoryConfig config | config.getQualifier() = v.getAnAccess() |
-        config.enables(singleSafeConfig())
-      )
+      exists(SAXParserFactoryConfig config | config.enables(v.getAnAccess(), singleSafeConfig()))
       or
-      exists(SAXParserFactoryConfig config | config.getQualifier() = v.getAnAccess() |
+      exists(SAXParserFactoryConfig config |
         config
-            .disables(any(ConstantStringExpr s |
+            .disables(v.getAnAccess(),
+              any(ConstantStringExpr s |
                 s.getStringValue() = "http://xml.org/sax/features/external-general-entities"
               ))
       ) and
-      exists(SAXParserFactoryConfig config | config.getQualifier() = v.getAnAccess() |
+      exists(SAXParserFactoryConfig config |
         config
-            .disables(any(ConstantStringExpr s |
+            .disables(v.getAnAccess(),
+              any(ConstantStringExpr s |
                 s.getStringValue() = "http://xml.org/sax/features/external-parameter-entities"
               ))
       ) and
-      exists(SAXParserFactoryConfig config | config.getQualifier() = v.getAnAccess() |
+      exists(SAXParserFactoryConfig config |
         config
-            .disables(any(ConstantStringExpr s |
+            .disables(v.getAnAccess(),
+              any(ConstantStringExpr s |
                 s.getStringValue() =
                   "http://apache.org/xml/features/nonvalidating/load-external-dtd"
               ))
